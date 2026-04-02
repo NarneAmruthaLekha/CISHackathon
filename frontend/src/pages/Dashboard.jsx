@@ -7,12 +7,25 @@ export default function Dashboard() {
   const [target, setTarget] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [historyStats, setHistoryStats] = useState({ high: 0, medium: 0, low: 0, total: 0 });
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!localStorage.getItem('user')) {
       navigate('/auth');
     }
+    
+    // Load local history stats
+    const history = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+    const stats = { high: 0, medium: 0, low: 0, total: history.length };
+    
+    history.forEach(scan => {
+      if (scan.overall === 'HIGH') stats.high++;
+      else if (scan.overall === 'MEDIUM') stats.medium++;
+      else if (scan.overall === 'LOW') stats.low++;
+    });
+    
+    setHistoryStats(stats);
   }, [navigate]);
 
   const handleScan = async (e) => {
@@ -58,7 +71,8 @@ export default function Dashboard() {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
     >
-      <div style={{ position: 'absolute', top: '1.5rem', right: '2rem' }}>
+      <div style={{ position: 'absolute', top: '1.5rem', right: '2rem', display: 'flex', gap: '1rem' }}>
+        <button className="btn-secondary" onClick={() => navigate('/history')}>View History</button>
         <button className="btn-secondary" onClick={handleLogout}>Log Out</button>
       </div>
 
@@ -89,6 +103,40 @@ export default function Dashboard() {
         {loading && (
           <div style={{ marginTop: '2rem', color: 'var(--text-muted)' }}>
             <p>Analyzing target... Running active, non-destructive checks.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '700px', marginTop: '2rem' }}>
+        <h3 style={{ color: 'var(--text-main)', marginBottom: '1.5rem' }}>Scan Analytics</h3>
+        
+        {historyStats.total === 0 ? (
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>No scan history yet</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ width: '80px', color: 'var(--text-muted)' }}>HIGH</span>
+              <div style={{ flex: 1, backgroundColor: 'var(--glass-bg)', height: '24px', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${(historyStats.high / historyStats.total) * 100}%`, height: '100%', backgroundColor: 'var(--high-risk)' }}></div>
+              </div>
+              <span style={{ width: '30px', textAlign: 'right', fontWeight: 'bold', color: 'var(--high-risk)' }}>{historyStats.high}</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ width: '80px', color: 'var(--text-muted)' }}>MEDIUM</span>
+              <div style={{ flex: 1, backgroundColor: 'var(--glass-bg)', height: '24px', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${(historyStats.medium / historyStats.total) * 100}%`, height: '100%', backgroundColor: 'var(--med-risk)' }}></div>
+              </div>
+              <span style={{ width: '30px', textAlign: 'right', fontWeight: 'bold', color: 'var(--med-risk)' }}>{historyStats.medium}</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ width: '80px', color: 'var(--text-muted)' }}>LOW</span>
+              <div style={{ flex: 1, backgroundColor: 'var(--glass-bg)', height: '24px', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${(historyStats.low / historyStats.total) * 100}%`, height: '100%', backgroundColor: 'var(--low-risk)' }}></div>
+              </div>
+              <span style={{ width: '30px', textAlign: 'right', fontWeight: 'bold', color: 'var(--low-risk)' }}>{historyStats.low}</span>
+            </div>
           </div>
         )}
       </div>

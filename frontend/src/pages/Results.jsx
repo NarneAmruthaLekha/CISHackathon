@@ -12,8 +12,22 @@ export default function Results() {
     const rawData = localStorage.getItem('scanResult');
     if (!rawData) {
       navigate('/dashboard');
-    } else {
-      setData(JSON.parse(rawData));
+      const parsedData = JSON.parse(rawData);
+      setData(parsedData);
+
+      const history = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+      const newEntry = {
+        url: parsedData.target,
+        overall: parsedData.overall_risk,
+        score: parsedData.score,
+        findings: parsedData.findings,
+        date: parsedData.timestamp || new Date().toISOString()
+      };
+      
+      if (history.length === 0 || history[0].date !== newEntry.date) {
+        history.unshift(newEntry);
+        localStorage.setItem('scanHistory', JSON.stringify(history));
+      }
     }
   }, [navigate]);
 

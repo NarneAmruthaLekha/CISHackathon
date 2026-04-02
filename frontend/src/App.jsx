@@ -4,6 +4,7 @@ import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Results from './pages/Results';
 import Details from './pages/Details';
+import History from './pages/History';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/results" element={<Results />} />
           <Route path="/details" element={<Details />} />
+          <Route path="/history" element={<History />} />
           <Route path="*" element={<Navigate to="/auth" replace />} />
         </Routes>
       </div>
