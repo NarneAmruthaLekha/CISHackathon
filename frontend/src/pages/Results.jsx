@@ -11,7 +11,7 @@ export default function Results() {
 
   console.log("Scan Result:", result);
 
-  const target = result?.target || "Unknown Target";
+  const target = result?.inputUrl || result?.target || "Unknown Target";
   const overall = result?.overall || result?.overall_risk || "LOW";
   const score = result?.score || 0;
   const findings = result?.findings || [];
@@ -24,14 +24,11 @@ export default function Results() {
         overall: overall,
         score: score,
         findings: findings,
-        date: new Date().toISOString()
+        date: new Date().toLocaleString()
       };
       
-      // Basic dedup for strict mode: prevent instant re-render insertion
-      if (history.length === 0 || history[0].url !== newEntry.url || history[0].date.split('T')[0] !== newEntry.date.split('T')[0]) {
-        history.unshift(newEntry);
-        localStorage.setItem('scanHistory', JSON.stringify(history));
-      }
+      history.push(newEntry);
+      localStorage.setItem('scanHistory', JSON.stringify(history));
     }
   }, [result, target, overall, score, findings]);
 

@@ -7,7 +7,7 @@ export default function Dashboard() {
   const [target, setTarget] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [historyStats, setHistoryStats] = useState({ high: 0, medium: 0, low: 0, total: 0 });
+  const [historyStats, setHistoryStats] = useState({ high: 0, medium: 0, low: 0, total: 0, grouped: { HIGH: [], MEDIUM: [], LOW: [] } });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,12 +17,22 @@ export default function Dashboard() {
     
     // Load local history stats
     const history = JSON.parse(localStorage.getItem('scanHistory') || '[]');
-    const stats = { high: 0, medium: 0, low: 0, total: history.length };
+    const stats = { high: 0, medium: 0, low: 0, total: history.length, grouped: { HIGH: [], MEDIUM: [], LOW: [] } };
     
     history.forEach(scan => {
-      if (scan.overall === 'HIGH') stats.high++;
-      else if (scan.overall === 'MEDIUM') stats.medium++;
-      else if (scan.overall === 'LOW') stats.low++;
+      const urlStr = scan.url || 'Unknown';
+      if (scan.overall === 'HIGH') {
+        stats.high++;
+        if(!stats.grouped.HIGH.includes(urlStr)) stats.grouped.HIGH.push(urlStr);
+      }
+      else if (scan.overall === 'MEDIUM') {
+        stats.medium++;
+        if(!stats.grouped.MEDIUM.includes(urlStr)) stats.grouped.MEDIUM.push(urlStr);
+      }
+      else if (scan.overall === 'LOW') {
+        stats.low++;
+        if(!stats.grouped.LOW.includes(urlStr)) stats.grouped.LOW.push(urlStr);
+      }
     });
     
     setHistoryStats(stats);
@@ -51,7 +61,7 @@ export default function Dashboard() {
       const data = await response.json();
       console.log("SCAN RESPONSE:", data);
       
-      navigate('/results', { state: data });
+      navigate('/results', { state: { ...data, inputUrl: target } });
     } catch (err) {
       setError(err.message || 'Error occurred during scan.');
     } finally {
@@ -115,29 +125,52 @@ export default function Dashboard() {
           <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>No scan history yet</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            
+            <div className="tooltip-container" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
               <span style={{ width: '80px', color: 'var(--text-muted)' }}>HIGH</span>
               <div style={{ flex: 1, backgroundColor: 'var(--glass-bg)', height: '24px', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: `${(historyStats.high / historyStats.total) * 100}%`, height: '100%', backgroundColor: 'var(--high-risk)' }}></div>
               </div>
               <span style={{ width: '30px', textAlign: 'right', fontWeight: 'bold', color: 'var(--high-risk)' }}>{historyStats.high}</span>
+              
+              {historyStats.grouped.HIGH.length > 0 && (
+                <div className="custom-tooltip">
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--high-risk)' }}>HIGH:</div>
+                  {historyStats.grouped.HIGH.map((u, i) => <div key={i}>• {u}</div>)}
+                </div>
+              )}
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div className="tooltip-container" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
               <span style={{ width: '80px', color: 'var(--text-muted)' }}>MEDIUM</span>
               <div style={{ flex: 1, backgroundColor: 'var(--glass-bg)', height: '24px', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: `${(historyStats.medium / historyStats.total) * 100}%`, height: '100%', backgroundColor: 'var(--med-risk)' }}></div>
               </div>
               <span style={{ width: '30px', textAlign: 'right', fontWeight: 'bold', color: 'var(--med-risk)' }}>{historyStats.medium}</span>
+              
+              {historyStats.grouped.MEDIUM.length > 0 && (
+                <div className="custom-tooltip">
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--med-risk)' }}>MEDIUM:</div>
+                  {historyStats.grouped.MEDIUM.map((u, i) => <div key={i}>• {u}</div>)}
+                </div>
+              )}
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div className="tooltip-container" style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
               <span style={{ width: '80px', color: 'var(--text-muted)' }}>LOW</span>
               <div style={{ flex: 1, backgroundColor: 'var(--glass-bg)', height: '24px', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: `${(historyStats.low / historyStats.total) * 100}%`, height: '100%', backgroundColor: 'var(--low-risk)' }}></div>
               </div>
               <span style={{ width: '30px', textAlign: 'right', fontWeight: 'bold', color: 'var(--low-risk)' }}>{historyStats.low}</span>
+              
+              {historyStats.grouped.LOW.length > 0 && (
+                <div className="custom-tooltip">
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--low-risk)' }}>LOW:</div>
+                  {historyStats.grouped.LOW.map((u, i) => <div key={i}>• {u}</div>)}
+                </div>
+              )}
             </div>
+            
           </div>
         )}
       </div>
@@ -145,6 +178,37 @@ export default function Dashboard() {
       <style>{`
         .lucide-spin { animation: spin 2s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .tooltip-container {
+          position: relative;
+        }
+        
+        .custom-tooltip {
+          visibility: hidden;
+          opacity: 0;
+          position: absolute;
+          z-index: 10;
+          bottom: 120%;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: var(--panel-bg);
+          backdrop-filter: blur(12px);
+          border: 1px solid var(--glass-border);
+          color: var(--text-main);
+          padding: 10px 14px;
+          border-radius: 8px;
+          white-space: nowrap;
+          font-size: 0.85rem;
+          transition: opacity 0.3s, bottom 0.3s;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+          pointer-events: none;
+        }
+        
+        .tooltip-container:hover .custom-tooltip {
+          visibility: visible;
+          opacity: 1;
+          bottom: 110%;
+        }
       `}</style>
     </motion.div>
   );
