@@ -1,0 +1,102 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Search, Loader2 } from 'lucide-react';
+
+export default function Dashboard() {
+  const [target, setTarget] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!localStorage.getItem('user')) {
+      navigate('/auth');
+    }
+  }, [navigate]);
+
+  const handleScan = async (e) => {
+    e.preventDefault();
+    if (!target) return;
+
+    localStorage.removeItem('scanResult');
+    setLoading(true);
+    setError('');
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target })
+      });
+
+      if (!response.ok) {
+        throw new Error('Scan failed. Ensure the Flask backend is running on port 5000.');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('scanResult', JSON.stringify({ target, ...data, timestamp: new Date().toISOString() }));
+      navigate('/results');
+    } catch (err) {
+      setError(err.message || 'Error occurred during scan.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/auth');
+  };
+
+  return (
+    <motion.div 
+      className="page-transition-wrapper"
+      style={{ alignItems: 'center', justifyContent: 'center' }}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+    >
+      <div style={{ position: 'absolute', top: '1.5rem', right: '2rem' }}>
+        <button className="btn-secondary" onClick={handleLogout}>Log Out</button>
+      </div>
+
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '700px', textAlign: 'center' }}>
+        <div style={{ marginBottom: '2.5rem' }}>
+          <Search size={48} color="var(--accent)" style={{ marginBottom: '1rem' }} />
+          <h2>New Scan</h2>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '1.1rem' }}>Enter a URL, IP, or Domain to assess its vulnerabilities.</p>
+        </div>
+
+        {error && <div style={{ color: 'var(--high-risk)', marginBottom: '1.5rem', padding: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>{error}</div>}
+
+        <form onSubmit={handleScan} style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+          <input 
+            type="text" 
+            className="input-field" 
+            style={{ padding: '1.25rem', fontSize: '1.1rem' }}
+            placeholder="e.g. https://example.com"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            disabled={loading}
+          />
+          <button type="submit" className="btn-primary" disabled={loading} style={{ padding: '1.25rem', fontSize: '1.1rem' }}>
+            {loading ? <Loader2 className="lucide-spin" size={24} /> : 'Run Background Scanner'}
+          </button>
+        </form>
+
+        {loading && (
+          <div style={{ marginTop: '2rem', color: 'var(--text-muted)' }}>
+            <p>Analyzing target... Running active, non-destructive checks.</p>
+          </div>
+        )}
+      </div>
+      
+      <style>{`
+        .lucide-spin { animation: spin 2s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+      `}</style>
+    </motion.div>
+  );
+}
