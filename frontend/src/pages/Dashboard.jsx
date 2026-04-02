@@ -49,8 +49,9 @@ export default function Dashboard() {
       }
 
       const data = await response.json();
-      localStorage.setItem('scanResult', JSON.stringify({ target, ...data, timestamp: new Date().toISOString() }));
-      navigate('/results');
+      console.log("SCAN RESPONSE:", data);
+      
+      navigate('/results', { state: data });
     } catch (err) {
       setError(err.message || 'Error occurred during scan.');
     } finally {

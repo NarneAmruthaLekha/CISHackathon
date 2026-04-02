@@ -1,39 +1,48 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShieldCheck, ShieldAlert, ArrowLeft, ArrowRight } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function Results() {
-  const [data, setData] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const result = location.state || {};
+
+  console.log("Scan Result:", result);
+
+  const target = result?.target || "Unknown Target";
+  const overall = result?.overall || result?.overall_risk || "LOW";
+  const score = result?.score || 0;
+  const findings = result?.findings || [];
 
   useEffect(() => {
-    const rawData = localStorage.getItem('scanResult');
-    if (!rawData) {
-      navigate('/dashboard');
-      const parsedData = JSON.parse(rawData);
-      setData(parsedData);
-
+    if (Object.keys(result).length > 0) {
       const history = JSON.parse(localStorage.getItem('scanHistory') || '[]');
       const newEntry = {
-        url: parsedData.target,
-        overall: parsedData.overall_risk,
-        score: parsedData.score,
-        findings: parsedData.findings,
-        date: parsedData.timestamp || new Date().toISOString()
+        url: target,
+        overall: overall,
+        score: score,
+        findings: findings,
+        date: new Date().toISOString()
       };
       
-      if (history.length === 0 || history[0].date !== newEntry.date) {
+      // Basic dedup for strict mode: prevent instant re-render insertion
+      if (history.length === 0 || history[0].url !== newEntry.url || history[0].date.split('T')[0] !== newEntry.date.split('T')[0]) {
         history.unshift(newEntry);
         localStorage.setItem('scanHistory', JSON.stringify(history));
       }
     }
-  }, [navigate]);
+  }, [result, target, overall, score, findings]);
 
-  if (!data) return null;
-
-  const { target, overall_risk, score, findings } = data;
+  if (!result || Object.keys(result).length === 0) {
+    return (
+      <div style={{ color: "white", textAlign: "center", padding: "5rem" }}>
+        <h2>No results available</h2>
+        <button className="btn-primary" onClick={() => navigate('/dashboard')} style={{ marginTop: '1rem' }}>Back to Dashboard</button>
+      </div>
+    );
+  }
 
   const getRiskColor = (risk) => {
     if (risk === 'HIGH') return 'var(--high-risk)';
@@ -41,10 +50,14 @@ export default function Results() {
     return 'var(--low-risk)';
   };
 
+  const highCount = findings.filter(f => f.severity === "HIGH" || f.risk === "HIGH").length || 0;
+  const mediumCount = findings.filter(f => f.severity === "MEDIUM" || f.risk === "MEDIUM").length || 0;
+  const lowCount = findings.filter(f => f.severity === "LOW" || f.risk === "LOW").length || 0;
+  
   const pieData = [
-    { name: 'High', value: findings.filter(f => f.risk === 'HIGH').length },
-    { name: 'Medium', value: findings.filter(f => f.risk === 'MEDIUM').length },
-    { name: 'Low', value: findings.filter(f => f.risk === 'LOW').length },
+    { name: 'High', value: highCount },
+    { name: 'Medium', value: mediumCount },
+    { name: 'Low', value: lowCount },
   ].filter(d => d.value > 0);
 
   const getPieColor = (name) => {
@@ -88,7 +101,7 @@ export default function Results() {
         <button className="btn-secondary" onClick={() => navigate('/dashboard')}>
           <ArrowLeft size={18} /> New Scan
         </button>
-        <button className="btn-primary" onClick={() => navigate('/details')}>
+        <button className="btn-primary" onClick={() => navigate('/details', { state: result })}>
           View Details <ArrowRight size={18} />
         </button>
       </div>
@@ -99,28 +112,28 @@ export default function Results() {
           <div style={{ 
             fontSize: '4rem', 
             fontWeight: 'bold', 
-            color: overall_risk === 'SECURE' ? 'var(--accent)' : getRiskColor(overall_risk),
+            color: overall === 'SECURE' ? 'var(--accent)' : getRiskColor(overall),
             marginBottom: '1.5rem',
             lineHeight: 1
           }}>
-            {overall_risk}
+            {overall}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
-            {score >= 8 ? <ShieldCheck color="var(--accent)" size={32} /> : <ShieldAlert color={getRiskColor(overall_risk)} size={32}/>}
+            {score >= 8 ? <ShieldCheck color="var(--accent)" size={32} /> : <ShieldAlert color={getRiskColor(overall)} size={32}/>}
             <span>System Score: <strong>{score} / 10</strong></span>
           </div>
 
           <p style={{ marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.95rem', fontStyle: 'italic', maxWidth: '80%', lineHeight: '1.4' }}>
-            {overall_risk === 'LOW' && "Overall risk is low because only minor or isolated issues were found."}
-            {overall_risk === 'MEDIUM' && "Multiple moderate issues detected."}
-            {overall_risk === 'HIGH' && "Critical vulnerabilities detected. Immediate action required."}
-            {overall_risk === 'SECURE' && "No issues detected. System is completely secure."}
+            {overall === 'LOW' && "Overall risk is low because only minor or isolated issues were found."}
+            {overall === 'MEDIUM' && "Multiple moderate issues detected."}
+            {overall === 'HIGH' && "Critical vulnerabilities detected. Immediate action required."}
+            {overall === 'SECURE' && "No issues detected. System is completely secure."}
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'center' }}>
-            <span className="badge badge-high">High: {findings.filter(f => f.risk === 'HIGH').length}</span>
-            <span className="badge badge-medium">Medium: {findings.filter(f => f.risk === 'MEDIUM').length}</span>
-            <span className="badge badge-low">Low: {findings.filter(f => f.risk === 'LOW').length}</span>
+            <span className="badge badge-high">High: {highCount}</span>
+            <span className="badge badge-medium">Medium: {mediumCount}</span>
+            <span className="badge badge-low">Low: {lowCount}</span>
           </div>
 
           <p style={{ marginTop: '2rem', color: 'var(--text-muted)', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>Target: {target}</p>

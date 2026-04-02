@@ -1,24 +1,23 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function Details() {
-  const [data, setData] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const data = location.state || {};
 
   useEffect(() => {
-    const rawData = localStorage.getItem('scanResult');
-    if (!rawData) {
+    if (!data || Object.keys(data).length === 0) {
       navigate('/dashboard');
-    } else {
-      setData(JSON.parse(rawData));
     }
-  }, [navigate]);
+  }, [navigate, data]);
 
-  if (!data) return null;
+  if (!data || Object.keys(data).length === 0) return null;
 
-  const { target, findings } = data;
+  const target = data?.target || "Unknown Target";
+  const findings = data?.findings || [];
 
   const getBadgeClass = (risk) => {
     if (risk === 'HIGH') return 'badge badge-high';
