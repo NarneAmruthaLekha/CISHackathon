@@ -27,14 +27,20 @@ export default function Results() {
         date: new Date().toLocaleString()
       };
       
-      history.push(newEntry);
+      const existingIdx = history.findIndex(h => h.url === target);
+      if (existingIdx >= 0) {
+        history[existingIdx] = newEntry;
+      } else {
+        history.push(newEntry);
+      }
+      
       localStorage.setItem('scanHistory', JSON.stringify(history));
     }
   }, [result, target, overall, score, findings]);
 
   if (!result || Object.keys(result).length === 0) {
     return (
-      <div style={{ color: "white", textAlign: "center", padding: "5rem" }}>
+      <div style={{ color: "var(--text-main)", textAlign: "center", padding: "5rem" }}>
         <h2>No results available</h2>
         <button className="btn-primary" onClick={() => navigate('/dashboard')} style={{ marginTop: '1rem' }}>Back to Dashboard</button>
       </div>
@@ -90,9 +96,10 @@ export default function Results() {
   return (
     <motion.div 
       className="page-transition-wrapper"
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.02 }}
+      initial={{ opacity: 0, y: 40, filter: 'blur(10px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      exit={{ opacity: 0, y: -40, filter: 'blur(10px)' }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
         <button className="btn-secondary" onClick={() => navigate('/dashboard')}>
