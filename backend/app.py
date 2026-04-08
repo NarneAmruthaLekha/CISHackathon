@@ -5,8 +5,12 @@ import logging
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 logging.basicConfig(level=logging.INFO)
+
+@app.route("/")
+def home():
+    return jsonify({"message": "Backend is running"}), 200
 
 @app.route('/scan', methods=['POST'])
 def scan_endpoint():
