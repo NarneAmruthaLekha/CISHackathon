@@ -172,10 +172,12 @@ The graph visualizes '1' in the Low column and '1' in the High column based on t
 
 *Sample placeholder visuals of the application interface:*
 
-![Dashboard View](assets/dashboard.png)  
+<img width="1393" height="886" alt="image" src="https://github.com/user-attachments/assets/f6718b8f-0e75-4a6c-abb9-f4dccd807665" />
+
 *(Above: The main interface showing the dynamic bar chart tracking risks)*
 
-![Graph Hover Capability](assets/graph.png)  
+<img width="1499" height="528" alt="image" src="https://github.com/user-attachments/assets/f8e1b458-601c-4c38-a0f6-d4fa1bc69883" />
+
 *(Above: Hover interaction revealing targeted URL metrics upon mouseover)*
 
 ## 12. Security Considerations
